@@ -12,7 +12,7 @@ import atexit
 import getpass
 import datetime
 
-from pyVim import connect
+from pyVim.connect import SmartConnectNoSSL, Disconnect
 from pyVmomi import vmodl
 from pyVmomi import vim
 
@@ -55,28 +55,27 @@ def get_args():
     if not args.password:
         args. password = getpass.getpass(
             prompt='Enter password for host %s and user %s: ' %
-                   (args.host, args.user))
+            (args.host, args.user))
 
     return args
 
 
 def main():
     """
-   Simple command-line program demonstrating vSphere perfManager API
-   """
+    Simple command-line program demonstrating vSphere perfManager API
+    """
 
     args = get_args()
     try:
-        service_instance = connect.SmartConnect(host=args.host,
-                                                user=args.user,
-                                                pwd=args.password,
-                                                port=int(args.port))
+        service_instance = SmartConnectNoSSL(host=args.host,
+                                             user=args.user,
+                                             pwd=args.password,
+                                             port=int(args.port))
+        atexit.register(Disconnect, service_instance)
         if not service_instance:
             print("Could not connect to the specified host using specified "
                   "username and password")
             return -1
-
-        atexit.register(connect.Disconnect, service_instance)
 
         content = service_instance.RetrieveContent()
 
@@ -90,6 +89,7 @@ def main():
         endTime = datetime.datetime.now()
 
         query = vim.PerformanceManager.QuerySpec(maxSample=1,
+                                                 intervalId=20,
                                                  entity=host,
                                                  metricId=[metricId],
                                                  startTime=startTime,
@@ -105,6 +105,7 @@ def main():
         return -1
 
     return 0
+
 
 # Start program
 if __name__ == "__main__":
